@@ -1,3 +1,5 @@
 .ipynb_checkpoints/
 /data_exploration
 *.csv
+/mlruns
+.pre-commit-config.yaml
