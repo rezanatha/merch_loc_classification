@@ -118,6 +118,18 @@ feature_importance = model.feature_importances_
 for i, col in enumerate(feature_cols):
     mlflow.log_metric(f"importance_{col}", feature_importance[i])
 
+# Get the current run ID for unique identification
+experiment_id = mlflow.active_run().info.experiment_id
+run_id = mlflow.active_run().info.run_id
+
+# Save XGBoost model in binary format
+model_bin_path = f"model/offline_online_classification_exp{experiment_id}_run{run_id}.bin"
+model.save_model(model_bin_path)
+
+# Log both the model through MLflow's API and the binary file
+mlflow.xgboost.log_model(model, "model")
+mlflow.log_artifact(model_bin_path)
+
 # Log model
 mlflow.xgboost.log_model(model, "model")
 
