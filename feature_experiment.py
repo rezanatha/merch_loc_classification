@@ -4,7 +4,7 @@ import torch
 device = 'cuda'
 torch.set_default_device(device)
 
-data = pl.read_csv('data/merchant_locs_train.csv', separator=',', quote_char='"').sample(10000)
+data = pl.read_csv('data/merchant_locs_train.csv', separator=',', quote_char='"').sample(200000)
 
 mapping = {"ONLINE": 1, "OFFLINE": 0}
 data = data.with_columns(
@@ -19,7 +19,9 @@ data = data.with_columns(
     pl.col("merchant_name").map_elements(lambda x: count_digit(x)/len(x), return_dtype = pl.Float32).alias("digit_ratio"),
     pl.col("merchant_name").map_elements(lambda x: len(re.findall(r'\d+',x)), return_dtype = pl.Int32).alias("num_blocks"),
     #pl.when(pl.col("merchant_location").is_null()).then(pl.lit(0)).otherwise(pl.lit(1)).alias("location_is_known"),
-    pl.when(pl.col("merchant_name").str.contains(r"((\bAFM\b)|(ALFAMART))|((\bIDM\b|INDOMARET))|(FAMILY\s?MART)|(HHB\s[A-Z0-9]{3})")).then(pl.lit(1)).otherwise(pl.lit(0)).alias("known_offline_merchant")
+    pl.when(pl.col("merchant_name").str.contains(r"((\bAFM\b)|(ALFAMART))|((\bIDM\b|INDOMARET))|(FAMILY\s?MART)|(HHB\s[A-Z0-9]{3})|(^7-(11|ELEVEN))")).then(pl.lit(1)).otherwise(pl.lit(0)).alias("known_offline_merchant"),
+    pl.when(pl.col("merchant_name").str.contains(r"\.CO(\.|M)|(CO\.ID)|(\.(SG|JP))|(GOOGL)|(FACEB(OO)?K)|(BILL P(A)?YM(ENT)?)")).then(pl.lit(1)).otherwise(pl.lit(0)).alias("known_online_merchant"),
+    pl.col("merchant_name").map_elements(lambda x: len(re.sub(r'[a-zA-Z0-9\s]','',x)), return_dtype = pl.Int32).alias("num_non_alphanumerics"),
 )
 
 # bert auto tokenizer
@@ -29,12 +31,39 @@ bert_tokenizer = transformers.AutoTokenizer.from_pretrained('huawei-noah/TinyBER
 bert_model = transformers.AutoModel.from_pretrained('huawei-noah/TinyBERT_General_4L_312D')
 bert_model.to('cuda')
 
-def create_bert_feature(data):
-    bert_input = bert_tokenizer(list(data), return_tensors="pt", padding=True, truncation=True)
-    # Get embeddings
-    with torch.no_grad():
-        bert_output = bert_model(**bert_input)
-    return bert_output.last_hidden_state[:, 0, :]
+def create_bert_feature(data, batch_size=4):
+    all_embeddings = []
+
+    # Process in batches
+    for i in range(0, len(data), batch_size):
+        batch = list(data[i:i + batch_size])
+
+        # Tokenize the current batch
+        bert_input = bert_tokenizer(batch, return_tensors="pt", padding=True, truncation=True, max_length=64)
+
+        # # Move inputs to GPU if available
+        # if torch.cuda.is_available():
+        #     bert_input = {k: v.cuda() for k, v in bert_input.items()}
+
+        # Get embeddings
+        with torch.no_grad():
+            bert_output = bert_model(**bert_input)
+
+        # Extract the [CLS] token embedding for each example in the batch
+        batch_embeddings = bert_output.last_hidden_state[:, 0, :]
+
+        all_embeddings.append(batch_embeddings)
+        torch.cuda.empty_cache()
+
+    # Concatenate all batches into one tensor
+    return torch.cat(all_embeddings, dim=0)
+
+# def create_bert_feature(data):
+#     bert_input = bert_tokenizer(list(data), return_tensors="pt", padding=True, truncation=True)
+#     # Get embeddings
+#     with torch.no_grad():
+#         bert_output = bert_model(**bert_input)
+#     return bert_output.last_hidden_state[:, 0, :]
 
 ##### SPECIAL DATA FOR EVALUATION (OFFLINE ONLY)
 
@@ -47,8 +76,11 @@ data_test_2 = data_test_2_raw.with_columns(
     pl.col("merchant_name").map_elements(lambda x: count_digit(x)/len(x), return_dtype = pl.Float32).alias("digit_ratio"),
     pl.col("merchant_name").map_elements(lambda x: len(re.findall(r'\d+',x)), return_dtype = pl.Int32).alias("num_blocks"),
     #pl.when(pl.col("merchant_location").is_null()).then(pl.lit(0)).otherwise(pl.lit(1)).alias("location_is_known"),
-    pl.when(pl.col("merchant_name").str.contains(r"((\bAFM\b)|(ALFAMART))|((\bIDM\b|INDOMARET))|(FAMILY\s?MART)|(HHB\s[A-Z0-9]{3})")).then(pl.lit(1)).otherwise(pl.lit(0)).alias("known_offline_merchant")
+    pl.when(pl.col("merchant_name").str.contains(r"((\bAFM\b)|(ALFAMART))|((\bIDM\b|INDOMARET))|(FAMILY\s?MART)|(HHB\s[A-Z0-9]{3})|(^7\-(11|ELEVEN))")).then(pl.lit(1)).otherwise(pl.lit(0)).alias("known_offline_merchant"),
+    pl.when(pl.col("merchant_name").str.contains(r"\.CO(\.|M)|(CO\.ID)|(\.(SG|JP))|(GOOGL)|(FACEB(OO)?K)|(BILL P(A)?YM(ENT)?)")).then(pl.lit(1)).otherwise(pl.lit(0)).alias("known_online_merchant"),
+    pl.col("merchant_name").map_elements(lambda x: len(re.sub(r'[a-zA-Z0-9\s]','',x)), return_dtype = pl.Int32).alias("num_non_alphanumerics"),
 )
+
 
 data_test_2 = data_test_2.with_columns(
     pl.col("online_offline_flag").replace_strict(mapping).alias("label")
@@ -61,9 +93,11 @@ import xgboost as xgb
 from sklearn.metrics import classification_report, accuracy_score, f1_score, roc_auc_score
 from sklearn.model_selection import train_test_split
 
+basic_features = ['digit_ratio', 'num_blocks', 'known_offline_merchant', 'known_online_merchant', 'num_non_alphanumerics']
+
 feature_sets = {
-    'basic':(['digit_ratio', 'num_blocks', 'known_offline_merchant'], []),
-    'basic_with_bert':(['digit_ratio', 'num_blocks', 'known_offline_merchant'], ['bert'])
+    'basic':(basic_features, []),
+    'basic_with_bert':(basic_features, ['bert'])
 }
 
 # Create a new MLflow Experiment
@@ -92,15 +126,15 @@ def evaluate_feature_sets(X,y, feature_set_name, features):
         params = {
                 'objective':'binary:logistic',
                 'n_estimators': 100,
-                'learning_rate':0.1,
-                'max_depth':5,
+                'learning_rate':0.2,
+                'max_depth':6,
                 'min_child_weight':3,
                 'subsample':0.8,
                 'colsample_bytree':0.8,
                 'tree_method':'hist',
                 'device':'cuda',
                 'random_state' : 1,
-                'early_stopping_rounds' :50
+                'early_stopping_rounds' :20
         }
         mlflow.log_params(params)
 
@@ -132,7 +166,7 @@ def evaluate_feature_sets(X,y, feature_set_name, features):
         X_test_specific = data_test_2.with_columns(
             pl.lit(y_pred).alias('predicted_label')
         )
-        X_test_specific[['merchant_name','predicted_label']].filter(pl.col('predicted_label') == 1).write_csv(f"prediction_result_{feature_set_name}.csv")
+        X_test_specific[['merchant_name','known_offline_merchant','known_online_merchant','label','predicted_label']].filter(pl.col('predicted_label') != pl.col('label')).write_csv(f"prediction_result_{feature_set_name}.csv")
         mlflow.log_artifact(f"prediction_result_{feature_set_name}.csv")
 
         # Log model
