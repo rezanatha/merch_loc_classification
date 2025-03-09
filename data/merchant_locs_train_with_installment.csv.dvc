@@ -2,4 +2,4 @@ outs:
 - md5: 870641237e863a0778362342e8d2e41a
   size: 117071949
   hash: md5
-  path: merchant_locs_train.csv
+  path: merchant_locs_train_with_installment.csv

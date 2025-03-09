@@ -30,6 +30,7 @@ import transformers, tqdm
 bert_tokenizer = transformers.AutoTokenizer.from_pretrained('huawei-noah/TinyBERT_General_4L_312D')
 bert_model = transformers.AutoModel.from_pretrained('huawei-noah/TinyBERT_General_4L_312D')
 bert_model.to('cuda')
+bert_model.eval()
 
 def create_bert_feature(data, batch_size=4):
     all_embeddings = []
