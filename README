@@ -1,0 +1,32 @@
+# Merchant Location Extraction
+
+Accurately extract location in which the transaction took place from EDC transaction description.
+
+
+1. Online-Offline Transaction Classification (O-OT Classification)
+
+Classify whether the transaction is made online or offline.
+
+2. Location Recognition
+
+Extract location from the transaction description.
+
+
+Current model capabilties:
+O-O Transaction Classification
+Accuracy: 99.94%
+
+Location Recognition
+Precision: 99.4%
+Recall: 99.6%
+F1 Score: 99.5%
+
+To do:
+1. Label online and offline transactions (DONE)
+2. Label location index from transactions (DONE)
+3. Create Indonesian City Dictionary (DONE)
+4. Create Non-Indonesian City Dictionary (Priority: Singapore, Malaysia, Japan, U.S, Hong Kong, Australia)
+5. Create Features & Train O-OT Classification model (DONE)
+6. Create Features & Train Location Recognition model (DONE)
+5. Explore BERT-based model for Location Recognition model
+6. Create text completion/enhancement function for Location Recognition inference
