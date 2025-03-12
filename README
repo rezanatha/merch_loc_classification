@@ -30,3 +30,4 @@ To do:
 6. Create Features & Train Location Recognition model (DONE)
 5. Explore BERT-based model for Location Recognition model
 6. Create text completion/enhancement function for Location Recognition inference
+7. Create Github Actions CI/CD workflow
