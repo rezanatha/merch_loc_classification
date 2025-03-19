@@ -12,7 +12,7 @@ def clean_merchant_name(text):
 
     return country_id, re.sub(r'[^a-zA-Z0-9\s]','',remainder).strip()
 
-text = "68'C OPTIC -DATARAN PA MELAKA MY"
+text = "6B40 LAWSON JENDRAL SUDIRBANYUMAS ID"
 country_id, text_clean = clean_merchant_name(text)
 doc = loaded_nlp(text_clean)
 
@@ -35,7 +35,7 @@ def jaccard_similarity(ngrams1, ngrams2):
 
     return intersection / union
 
-def enhance_location_from_dict(row, threshold = 0.8, all_text_threshold = 0.7):
+def enhance_location_from_dict(row, cba_threshold = 0.6, threshold = 0.8, all_text_threshold = 0.7):
     if row is None or len(row) == 0:
         return None
 
@@ -51,8 +51,22 @@ def enhance_location_from_dict(row, threshold = 0.8, all_text_threshold = 0.7):
     if re.search(r'badung', row):
         return row, [(1.1, 'badung')]
 
-    # word by word
+    #char by all
     match = []
+    for loc_char in row:
+        if loc_char not in city_dictionary['full_text']:
+            continue
+
+        for possible_loc in city_dictionary['full_text'][loc_char]:
+            score = jaccard_similarity(possible_loc, row)
+            if possible_loc in row:
+                score += 0.01
+
+            if score >= cba_threshold:
+                match.append((score, possible_loc, 'cba'))
+
+    # word by word
+
     for loc_word in row.split(" "):
         if len(loc_word) == 0:
             continue
@@ -66,17 +80,18 @@ def enhance_location_from_dict(row, threshold = 0.8, all_text_threshold = 0.7):
 
             if score >= threshold:
                 match.append((score,possible_loc, 'wbw')) # change loc_word to possible_loc for full enhancement
-    # single
+    # all by all
     if row[0] in city_dictionary['full_text']:
         for possible_loc in city_dictionary['full_text'][row[0]]:
             score = jaccard_similarity(possible_loc, row)
             if score >= all_text_threshold:
-                match.append((1.01*score, possible_loc ,'sin')) # change row to possible_loc for full enhancement
+                match.append((1.01*score, possible_loc ,'aba')) # change row to possible_loc for full enhancement
 
     return row, sorted(match, key=lambda x: x[0], reverse=True)
 
 def extract_enhanced_location(row):
     enhanced = enhance_location_from_dict(row)
+    print(enhanced)
 
     if len(enhanced[1]) == 0:
         return None

@@ -2,7 +2,6 @@
 /data_exploration
 *.csv
 /mlruns
-/model
 *.parquet
-*.json
 *.spacy
+word2vec.model*
