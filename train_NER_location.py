@@ -16,7 +16,7 @@ def create_spacy_dataset(data):
     return spacy_data
 
 spacy_data = create_spacy_dataset(train)
-random.shuffle(spacy_data, seed = 1)
+random.Random(1).shuffle(spacy_data)
 train_data = spacy_data[:int(len(spacy_data) * 0.9)]
 test_data = spacy_data[int(len(spacy_data) * 0.9):]
 
