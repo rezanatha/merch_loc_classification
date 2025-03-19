@@ -15,10 +15,10 @@ def create_spacy_dataset(data):
 
     return spacy_data
 
-spacy_data = create_spacy_data(train)
-random.shuffle(spacy_data)
-train_data = spacy_data[:int(len(spacy_data) * 0.8)]
-test_data = spacy_data[int(len(spacy_data) * 0.8):]
+spacy_data = create_spacy_dataset(train)
+random.shuffle(spacy_data, seed = 1)
+train_data = spacy_data[:int(len(spacy_data) * 0.9)]
+test_data = spacy_data[int(len(spacy_data) * 0.9):]
 
 def create_model(train_data):
     nlp = spacy.blank("id")  # create blank model (adjust language as needed)
@@ -117,22 +117,22 @@ train_examples = []
 for text, annotations in train_data:
     doc = nlp.make_doc(text)
     example = Example.from_dict(doc, annotations)
-train_examples.append(example)
+    train_examples.append(example)
 
 # Training
 optimizer = nlp.begin_training()
-optimizer.learn_rate = 0.01
+#optimizer.learn_rate = 0.01
 
 # Batch up the examples
 from spacy.util import minibatch, compounding
 n_iter = 30
 print("Training model...")
 for i in range(n_iter):
-    random.shuffle(examples)
+    random.shuffle(train_examples)
     losses = {}
 
     # Batch the examples
-    batches = minibatch(examples, size=compounding(4.0, 32.0, 1.001))
+    batches = minibatch(train_examples, size=compounding(4.0, 32.0, 1.001))
     for batch in batches:
         nlp.update(batch, drop=0.4, losses=losses)
 
