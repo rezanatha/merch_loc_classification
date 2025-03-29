@@ -17,9 +17,9 @@ O-O Transaction Classification
 Accuracy: 99.94%
 
 Location Recognition
-Precision: 99.4%
-Recall: 99.6%
-F1 Score: 99.5%
+Precision: 98.7%
+Recall: 98.4%
+F1 Score: 98.5%
 
 To do:
 1. Label online and offline transactions (DONE)
@@ -28,6 +28,6 @@ To do:
 4. Create Non-Indonesian City Dictionary (Priority: Singapore, Malaysia, Japan, U.S, Hong Kong, Australia)
 5. Create Features & Train O-OT Classification model (DONE)
 6. Create Features & Train Location Recognition model (DONE)
-5. Explore BERT-based model for Location Recognition model
-6. Create text completion/enhancement function for Location Recognition inference
+5. Explore BERT-based for Location Recognition model
+6. Create text completion/enhancement function for Location Recognition inference (DONE)
 7. Create Github Actions CI/CD workflow

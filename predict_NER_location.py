@@ -1,9 +1,12 @@
 import spacy
 import re
-# Load the saved model
-loaded_nlp = spacy.load("model/indonesian_location_ner_model")
 
-# Test on some text
+import pickle
+import numpy as np
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+
 def clean_merchant_name(text):
     remainder = text
     # last two characters are country id
@@ -11,23 +14,6 @@ def clean_merchant_name(text):
     remainder = text[:len(text)-2].lower()
 
     return country_id, re.sub(r'[^a-zA-Z0-9\s]','',remainder).strip()
-
-text = "6B40 LAWSON JENDRAL SUDIRBANYUMAS ID"
-country_id, text_clean = clean_merchant_name(text)
-doc = loaded_nlp(text_clean)
-
-# Print entities
-for ent in doc.ents:
-    print(f"{country_id}: {ent.text} - {ent.label_}")
-
-# text augmentation
-import pickle
-import numpy as np
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-# file = open('data/city_dictionary.pkl', 'rb')
-# city_dictionary = pickle.load(file)
-# file.close()
 
 class NGramFuzzyMatcher:
     def __init__(self, reference_list, ngram_range=(2, 3)):
@@ -58,11 +44,26 @@ class NGramFuzzyMatcher:
 
         return list_indices
 
-file = open('data/ngram_fuzzy_matcher_class.pkl', 'rb')
-matcher = pickle.load(file)
-file.close()
 
-# Print entities
-for ent in doc.ents:
-    if ent.label_== "LOC":
-        print("Augmented:", matcher.query(ent.text))
+if __name__ == "__main__":
+    # Load the saved model
+    loaded_nlp = spacy.load("model/indonesian_location_ner_model")
+
+    # load text enhancement
+    file = open('data/ngram_fuzzy_matcher_class.pkl', 'rb')
+    matcher = pickle.load(file)
+    file.close()
+
+    # Test on some text
+    text = "TOKO ABADI JAYA JENDSUDBANYUMAS ID"
+    country_id, text_clean = clean_merchant_name(text)
+    doc = loaded_nlp(text_clean)
+
+    # Print entities
+    for ent in doc.ents:
+        print(f"{country_id}: {ent.text} - {ent.label_}")
+
+    # Print entities
+    for ent in doc.ents:
+        if ent.label_== "LOC":
+            print("Augmented:", matcher.query(ent.text))

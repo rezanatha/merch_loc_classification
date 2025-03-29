@@ -1,0 +1,16 @@
+['z003 elzatta surabaya bandung kot', {'entities': [(13, 21, 'LOC')]}),
+ ('sour sally mall central pjakarta barat', {'entities': [(25, 38, 'LOC')]}),
+ ('gumati cirebon cirebon kab', {'entities': [(7, 14, 'LOC')]}),
+ ('kobe petshop mbl jakarta', {'entities': [(17, 24, 'LOC')]}),
+ ('dunia listrik toko  h madiun', {'entities': [(22, 28, 'LOC')]}),
+ ('pb gas alam sukatani depok', {'entities': [(21, 26, 'LOC')]}),
+ ('seventeen experience t jajakarta timur', {'entities': [(23, 38, 'LOC')]}),
+ ('pic  yoshinoya palembangpalembang ko', {'entities': [(15, 33, 'LOC')]}),
+ ('gokana bekasi', {'entities': [(7, 13, 'LOC')]}),
+ ('erha skingresik gresik', {'entities': [(9, 15, 'LOC')]}),
+ ('susu mbok darmi d botan bandung kot', {'entities': [(24, 31, 'LOC')]}),
+ ('paninlife 2017029636dec24jakarta pusat', {'entities': [(25, 38, 'LOC')]}),
+ ('mothercareelc bigmal samarinda', {'entities': [(21, 30, 'LOC')]}),
+ ('ria busanasiliwangi sukabumi', {'entities': [(20, 28, 'LOC')]}),
+ ('zeno jakarta barat', {'entities': [(5, 18, 'LOC')]})
+]

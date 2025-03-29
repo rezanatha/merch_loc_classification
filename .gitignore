@@ -5,3 +5,4 @@
 *.parquet
 *.spacy
 word2vec.model*
+*.ipynb
